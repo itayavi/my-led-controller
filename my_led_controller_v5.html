@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10111a">
+  <title>My LED v5 — בדיקת פקודה מבודדת</title>
+  <style>
+    :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 22px 16px; color: #f7f7ff; background: #10111a; }
+    main { max-width: 520px; margin: auto; }
+    h1 { margin: 0 0 5px; font-size: 34px; }
+    .intro, .hint, #status { color: #b5b8ca; line-height: 1.5; }
+    .panel { background: #1b1d2b; border: 1px solid #323548; border-radius: 16px; padding: 16px; margin: 15px 0; }
+    button { font: inherit; cursor: pointer; border: 0; border-radius: 12px; padding: 13px 12px; color: white; background: #6c55df; }
+    button:disabled { opacity: .5; cursor: default; }
+    #connect { width: 100%; font-weight: 700; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+    .swatch { display: inline-block; width: 18px; height: 18px; border-radius: 50%; vertical-align: middle; margin-left: 8px; border: 1px solid #ffffff55; }
+    .color { background: #292c40; text-align: right; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    input[type="text"] { min-width: 0; flex: 1; padding: 13px 10px; border-radius: 10px; border: 1px solid #454960; background: #11131e; color: white; font: inherit; direction: ltr; }
+    input[type="range"] { width: 100%; accent-color: #9a87ff; }
+    label { display: block; margin: 15px 0 8px; font-weight: 700; }
+    #controls[hidden] { display: none; }
+    .foot { text-align: center; font-size: 12px; color: #777b91; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>My LED v5</h1>
+    <p class="intro">שליטה בבקר GATT--DEMO באמצעות Bluetooth LE. הדף לא טוען ספריות או קבצים מאתרים אחרים.</p>
+
+    <section class="panel" aria-live="polite">
+      <strong id="state">לא מחובר</strong>
+      <p id="status">הפעל Bluetooth באייפון ולחץ על הכפתור כדי לבחור את הבקר.</p>
+      <button id="connect" type="button">מצא וחבר את הלדים</button>
+      <button id="disconnect" type="button" hidden style="width:100%;margin-top:8px;background:#383b4e">נתק</button>
+    </section>
+
+    <section id="controls" hidden>
+      <h2>בחירת צבע</h2>
+      <div class="grid">
+        <button class="color" data-color="FF0000" data-name="אדום"><span class="swatch" style="background:#ff3030"></span>אדום</button>
+        <button class="color" data-color="00FF00" data-name="ירוק"><span class="swatch" style="background:#30d878"></span>ירוק</button>
+        <button class="color" data-color="0000FF" data-name="כחול"><span class="swatch" style="background:#408cff"></span>כחול</button>
+        <button class="color" data-color="FFFFFF" data-name="לבן"><span class="swatch" style="background:#ffffff"></span>לבן</button>
+        <button class="color" data-color="AE62FF" data-name="סגול"><span class="swatch" style="background:#ae62ff"></span>סגול</button>
+        <button class="color" data-color="FF9B35" data-name="כתום"><span class="swatch" style="background:#ff9b35"></span>כתום</button>
+      </div>
+
+      <label for="hex">צבע אישי (HEX)</label>
+      <div class="row">
+        <span>#</span>
+        <input id="hex" type="text" value="FF0000" maxlength="7" autocomplete="off" aria-label="קוד צבע HEX">
+        <button id="applyColor" type="button">החל</button>
+      </div>
+
+      <label for="brightness">בהירות: <span id="brightnessText">100%</span></label>
+      <input id="brightness" type="range" min="3" max="1000" value="1000" step="1">
+      <button id="applyBrightness" type="button" style="width:100%;margin-top:10px">החל בהירות</button>
+
+      <hr style="border:0;border-top:1px solid #383b4e;margin:22px 0">
+      <h2>אפקטים מרובי־צבעים</h2>
+      <p class="hint">המצבים נשלחים לבקר כאפקטים מובנים. המספרים עדיין לא ממופים לשמות, לכן נבדוק אותם אחד־אחד.</p>
+      <label for="effectMode">מצב אפקט</label>
+      <div class="row">
+        <select id="effectMode" style="min-width:0;flex:1;padding:13px 10px;border-radius:10px;border:1px solid #454960;background:#11131e;color:white;font:inherit">
+          <option value="1">מצב 1</option><option value="2">מצב 2</option><option value="3">מצב 3</option><option value="4">מצב 4</option><option value="5">מצב 5</option>
+          <option value="6">מצב 6</option><option value="7">מצב 7</option><option value="8">מצב 8</option><option value="9">מצב 9</option><option value="10">מצב 10</option>
+          <option value="11">מצב 11</option><option value="12">מצב 12</option><option value="13">מצב 13</option><option value="14">מצב 14</option><option value="15">מצב 15</option>
+          <option value="16">מצב 16</option><option value="17">מצב 17</option><option value="18">מצב 18</option><option value="19">מצב 19</option><option value="20">מצב 20</option>
+        </select>
+        <button id="applyEffect" type="button">הפעל</button>
+      </div>
+
+      <label for="speed">מהירות אפקט: <span id="speedText">50</span></label>
+      <input id="speed" type="range" min="0" max="100" value="50" step="1">
+      <button id="applySpeed" type="button" style="width:100%;margin-top:10px">החל מהירות</button>
+
+      <hr style="border:0;border-top:1px solid #383b4e;margin:22px 0">
+      <h2>בדיקת פקודה 0x13 בלבד</h2>
+      <p class="hint">המשמעות של פקודה 0x13 עדיין לא פוענחה. בגרסה הקודמת הדף שלח פקודת צבע רגילה מיד אחרי 0x13, ולכן הוא הסתיר את התוצאה. בגרסה הזאת נשלחת רק פקודת 0x13 ולא נשלחת אחריה פקודת צבע אוטומטית. הבדיקה עדיין ניסיונית ואינה הוכחה לתמיכה במקטעים.</p>
+      <label for="segmentIndex">ערך בדיקה (0–15)</label>
+      <div class="row">
+        <input id="segmentIndex" type="number" value="1" min="0" max="15" step="1" style="min-width:0;flex:1;padding:13px 10px;border-radius:10px;border:1px solid #454960;background:#11131e;color:white;font:inherit">
+        <button id="testSegment" type="button">שלח 0x13 בלבד</button>
+      </div>
+      <p class="hint">בדוק תחילה ערך 1 בלבד. לאחר הלחיצה המתן 2–3 שניות ותעד מה קרה. הדף לא יחזיר את הצבע אוטומטית; אם צריך, לחץ על אחד מכפתורי הצבע הרגילים כדי להחזיר צבע אחיד. אל תריץ סדרה ארוכה של ערכים בבת אחת.</p>
+    </section>
+
+    <p class="hint">אם הבקר לא מופיע, סגור את Mr Star ואת כל היישומים האחרים שמחוברים ללדים. נדרשת כתובת HTTPS ושימוש בדפדפן Bluefy באייפון.</p>
+    <p class="foot">My LED · Bluetooth Low Energy</p>
+  </main>
+
+  <script>
+    'use strict';
+    const SERVICE_UUID = '0000fff0-0000-1000-8000-00805f9b34fb';
+    const WRITE_UUID = '0000fff3-0000-1000-8000-00805f9b34fb';
+    const stateText = document.getElementById('state');
+    const statusText = document.getElementById('status');
+    const connectButton = document.getElementById('connect');
+    const disconnectButton = document.getElementById('disconnect');
+    const controls = document.getElementById('controls');
+    const hexInput = document.getElementById('hex');
+    const brightnessInput = document.getElementById('brightness');
+    const brightnessText = document.getElementById('brightnessText');
+    const effectModeInput = document.getElementById('effectMode');
+    const speedInput = document.getElementById('speed');
+    const speedText = document.getElementById('speedText');
+    const segmentIndexInput = document.getElementById('segmentIndex');
+    let selectedDevice = null;
+    let writeCharacteristic = null;
+    let brightness = 1000;
+    let working = false;
+
+    function showStatus(title, message, connected) {
+      stateText.textContent = title;
+      statusText.textContent = message;
+      connectButton.hidden = connected;
+      disconnectButton.hidden = !connected;
+      controls.hidden = !connected;
+    }
+
+    function word(value) {
+      const number = Math.max(0, Math.min(65535, Math.round(value)));
+      return [(number >> 8) & 255, number & 255];
+    }
+
+    async function writePacket(bytes) {
+      if (!writeCharacteristic) throw new Error('הבקר לא מחובר. התחבר מחדש.');
+      const data = new Uint8Array(bytes);
+      if (typeof writeCharacteristic.writeValueWithResponse === 'function') {
+        await writeCharacteristic.writeValueWithResponse(data);
+      } else if (typeof writeCharacteristic.writeValue === 'function') {
+        await writeCharacteristic.writeValue(data);
+      } else if (typeof writeCharacteristic.writeValueWithoutResponse === 'function') {
+        await writeCharacteristic.writeValueWithoutResponse(data);
+      } else {
+        throw new Error('הדפדפן לא מאפשר שליחת פקודות למאפיין הזה.');
+      }
+    }
+
+    async function runAction(action) {
+      if (working) return;
+      working = true;
+      document.querySelectorAll('button').forEach((button) => { button.disabled = true; });
+      try {
+        await action();
+      } catch (error) {
+        showStatus('הפעולה נכשלה', error && error.message ? error.message : String(error), Boolean(writeCharacteristic));
+      } finally {
+        working = false;
+        document.querySelectorAll('button').forEach((button) => { button.disabled = false; });
+      }
+    }
+
+    async function connect() {
+      if (!window.isSecureContext || !navigator.bluetooth || !navigator.bluetooth.requestDevice) {
+        throw new Error('פתח את הדף דרך HTTPS בתוך Bluefy כדי להשתמש ב-Bluetooth.');
+      }
+      showStatus('מחפש בקר', 'בחר בחלון שנפתח את GATT--DEMO.', false);
+      selectedDevice = await navigator.bluetooth.requestDevice({
+        filters: [{ namePrefix: 'GATT' }],
+        optionalServices: [SERVICE_UUID]
+      });
+      selectedDevice.addEventListener('gattserverdisconnected', () => {
+        writeCharacteristic = null;
+        showStatus('נותק', 'החיבור נותק. לחץ כדי להתחבר מחדש.', false);
+      });
+      const server = await selectedDevice.gatt.connect();
+      const service = await server.getPrimaryService(SERVICE_UUID);
+      writeCharacteristic = await service.getCharacteristic(WRITE_UUID);
+      showStatus('מחובר', 'התחברת אל ' + (selectedDevice.name || 'GATT--DEMO') + '.', true);
+    }
+
+    async function applyBrightness(value) {
+      brightness = Math.max(3, Math.min(1000, Math.round(Number(value))));
+      const bytes = word(brightness);
+      await writePacket([0xBC, 0x05, 0x06, bytes[0], bytes[1], 0, 0, 0, 0, 0x55]);
+      brightnessText.textContent = Math.round(brightness / 10) + '%';
+      showStatus('מחובר', 'הבהירות עודכנה.', true);
+    }
+
+    async function applyEffectMode(value) {
+      const mode = Math.max(1, Math.min(20, Math.round(Number(value))));
+      // Documented command 0x06: two-byte effect value encoded as n/255 and n%255.
+      const packet = [0xBC, 0x06, 0x02, Math.floor(mode / 255), mode % 255, 0x55];
+      await writePacket(packet);
+      showStatus('מחובר', 'נשלח מצב אפקט ' + mode + '.', true);
+    }
+
+    async function applySpeed(value) {
+      const speed = Math.max(0, Math.min(100, Math.round(Number(value))));
+      await writePacket([0xBC, 0x08, 0x01, speed, 0x55]);
+      speedText.textContent = String(speed);
+      showStatus('מחובר', 'מהירות האפקט עודכנה ל־' + speed + '.', true);
+    }
+
+    async function testSegmentCandidate() {
+      const value = Math.max(0, Math.min(15, Math.round(Number(segmentIndexInput.value))));
+      const bytes = word(value);
+      // Experimental only: command 0x13 is documented as unverified. Send it in isolation;
+      // do not immediately send a normal color packet, which would mask its behavior.
+      await writePacket([0xBC, 0x13, 0x02, bytes[0], bytes[1], 0x55]);
+      showStatus('נשלחה פקודת בדיקה', 'נשלחה רק פקודה 0x13 עם הערך ' + value + '. המתן 2–3 שניות ובדוק את הפס. אם צריך, לחץ על צבע רגיל כדי להחזיר צבע אחיד.', true);
+    }
+
+    function colorToHsv(hex) {
+      const clean = hex.trim().replace(/^#/, '');
+      if (!/^[0-9a-fA-F]{6}$/.test(clean)) throw new Error('הזן קוד צבע בעל 6 ספרות, לדוגמה FF5500.');
+      const red = parseInt(clean.slice(0, 2), 16) / 255;
+      const green = parseInt(clean.slice(2, 4), 16) / 255;
+      const blue = parseInt(clean.slice(4, 6), 16) / 255;
+      const max = Math.max(red, green, blue);
+      const min = Math.min(red, green, blue);
+      const delta = max - min;
+      let hue = 0;
+      if (delta !== 0) {
+        if (max === red) hue = 60 * (((green - blue) / delta) % 6);
+        else if (max === green) hue = 60 * ((blue - red) / delta + 2);
+        else hue = 60 * ((red - green) / delta + 4);
+      }
+      if (hue < 0) hue += 360;
+      return { clean: clean.toUpperCase(), hue: Math.round(hue) % 360,
+        saturation: Math.round((max === 0 ? 0 : delta / max) * 1000), value: max };
+    }
+
+    async function applyColor(hex, label) {
+      const color = colorToHsv(hex);
+      // The device's observed hue order is blue at 0, green at 120, red at 240.
+      const hue = (240 - color.hue + 360) % 360;
+      const h = word(hue);
+      const s = word(color.saturation);
+      await writePacket([0xBC, 0x04, 0x06, h[0], h[1], s[0], s[1], 0, 0, 0x55]);
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      const effectiveBrightness = Math.max(3, Math.round(brightness * color.value));
+      const b = word(effectiveBrightness);
+      await writePacket([0xBC, 0x05, 0x06, b[0], b[1], 0, 0, 0, 0, 0x55]);
+      hexInput.value = color.clean;
+      showStatus('מחובר', 'הצבע הוחל: ' + label, true);
+    }
+
+    connectButton.addEventListener('click', () => runAction(connect));
+    disconnectButton.addEventListener('click', () => runAction(async () => {
+      if (selectedDevice && selectedDevice.gatt && selectedDevice.gatt.connected) selectedDevice.gatt.disconnect();
+      writeCharacteristic = null;
+      showStatus('לא מחובר', 'נותק מהבקר.', false);
+    }));
+    document.querySelectorAll('[data-color]').forEach((button) => {
+      button.addEventListener('click', () => runAction(() => applyColor(button.dataset.color, button.dataset.name)));
+    });
+    document.getElementById('applyColor').addEventListener('click', () => runAction(() => applyColor(hexInput.value, '#' + hexInput.value.replace(/^#/, '').toUpperCase())));
+    document.getElementById('applyBrightness').addEventListener('click', () => runAction(() => applyBrightness(brightnessInput.value)));
+    document.getElementById('applyEffect').addEventListener('click', () => runAction(() => applyEffectMode(effectModeInput.value)));
+    document.getElementById('applySpeed').addEventListener('click', () => runAction(() => applySpeed(speedInput.value)));
+    document.getElementById('testSegment').addEventListener('click', () => runAction(testSegmentCandidate));
+    speedInput.addEventListener('input', () => { speedText.textContent = speedInput.value; });
+    brightnessInput.addEventListener('input', () => { brightnessText.textContent = Math.round(Number(brightnessInput.value) / 10) + '%'; });
+    hexInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') document.getElementById('applyColor').click(); });
+
+    if (!window.isSecureContext) showStatus('נדרשת כתובת HTTPS', 'פתח את הדף מכתובת HTTPS בתוך Bluefy.', false);
+    else if (!navigator.bluetooth) showStatus('פתח דרך Bluefy', 'הדפדפן הנוכחי לא מספק Web Bluetooth. פתח את הדף ב-Bluefy.', false);
+  </script>
+</body>
+</html>
