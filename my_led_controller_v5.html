@@ -98,6 +98,7 @@
     'use strict';
     const SERVICE_UUID = '0000fff0-0000-1000-8000-00805f9b34fb';
     const WRITE_UUID = '0000fff3-0000-1000-8000-00805f9b34fb';
+    const NOTIFY_UUID = '0000fff4-0000-1000-8000-00805f9b34fb';
     const stateText = document.getElementById('state');
     const statusText = document.getElementById('status');
     const connectButton = document.getElementById('connect');
@@ -155,6 +156,15 @@
         document.querySelectorAll('button').forEach((button) => { button.disabled = false; });
       }
     }
+    let notifyCharacteristic = null;
+
+function handleNotification(event) {
+  const bytes = Array.from(new Uint8Array(event.target.value.buffer))
+    .map(byte => byte.toString(16).padStart(2, '0').toUpperCase());
+
+  console.log('FFF4 notification:', bytes.join(' '));
+  statusText.textContent = 'מידע שהתקבל מ-FFF4: ' + bytes.join(' ');
+}
 
     async function connect() {
       if (!window.isSecureContext || !navigator.bluetooth || !navigator.bluetooth.requestDevice) {
@@ -172,6 +182,19 @@
       const server = await selectedDevice.gatt.connect();
       const service = await server.getPrimaryService(SERVICE_UUID);
       writeCharacteristic = await service.getCharacteristic(WRITE_UUID);
+      try {
+  notifyCharacteristic = await service.getCharacteristic(NOTIFY_UUID);
+
+  notifyCharacteristic.addEventListener(
+    'characteristicvaluechanged',
+    handleNotification
+  );
+
+  await notifyCharacteristic.startNotifications();
+  console.log('FFF4 notifications enabled');
+} catch (error) {
+  console.log('FFF4 notifications unavailable:', error.message);
+}
       showStatus('מחובר', 'התחברת אל ' + (selectedDevice.name || 'GATT--DEMO') + '.', true);
     }
 
