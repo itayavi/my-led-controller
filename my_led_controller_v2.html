@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10111a">
+  <title>My LED — שליטה בלדים</title>
+  <style>
+    :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 22px 16px; color: #f7f7ff; background: #10111a; }
+    main { max-width: 520px; margin: auto; }
+    h1 { margin: 0 0 5px; font-size: 34px; }
+    .intro, .hint, #status { color: #b5b8ca; line-height: 1.5; }
+    .panel { background: #1b1d2b; border: 1px solid #323548; border-radius: 16px; padding: 16px; margin: 15px 0; }
+    button { font: inherit; cursor: pointer; border: 0; border-radius: 12px; padding: 13px 12px; color: white; background: #6c55df; }
+    button:disabled { opacity: .5; cursor: default; }
+    #connect { width: 100%; font-weight: 700; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+    .swatch { display: inline-block; width: 18px; height: 18px; border-radius: 50%; vertical-align: middle; margin-left: 8px; border: 1px solid #ffffff55; }
+    .color { background: #292c40; text-align: right; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    input[type="text"] { min-width: 0; flex: 1; padding: 13px 10px; border-radius: 10px; border: 1px solid #454960; background: #11131e; color: white; font: inherit; direction: ltr; }
+    input[type="range"] { width: 100%; accent-color: #9a87ff; }
+    label { display: block; margin: 15px 0 8px; font-weight: 700; }
+    #controls[hidden] { display: none; }
+    .foot { text-align: center; font-size: 12px; color: #777b91; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>My LED</h1>
+    <p class="intro">שליטה בבקר GATT--DEMO באמצעות Bluetooth LE. הדף לא טוען ספריות או קבצים מאתרים אחרים.</p>
+
+    <section class="panel" aria-live="polite">
+      <strong id="state">לא מחובר</strong>
+      <p id="status">הפעל Bluetooth באייפון ולחץ על הכפתור כדי לבחור את הבקר.</p>
+      <button id="connect" type="button">מצא וחבר את הלדים</button>
+      <button id="disconnect" type="button" hidden style="width:100%;margin-top:8px;background:#383b4e">נתק</button>
+    </section>
+
+    <section id="controls" hidden>
+      <h2>בחירת צבע</h2>
+      <div class="grid">
+        <button class="color" data-color="FF0000" data-name="אדום"><span class="swatch" style="background:#ff3030"></span>אדום</button>
+        <button class="color" data-color="00FF00" data-name="ירוק"><span class="swatch" style="background:#30d878"></span>ירוק</button>
+        <button class="color" data-color="0000FF" data-name="כחול"><span class="swatch" style="background:#408cff"></span>כחול</button>
+        <button class="color" data-color="FFFFFF" data-name="לבן"><span class="swatch" style="background:#ffffff"></span>לבן</button>
+        <button class="color" data-color="AE62FF" data-name="סגול"><span class="swatch" style="background:#ae62ff"></span>סגול</button>
+        <button class="color" data-color="FF9B35" data-name="כתום"><span class="swatch" style="background:#ff9b35"></span>כתום</button>
+      </div>
+
+      <label for="hex">צבע אישי (HEX)</label>
+      <div class="row">
+        <span>#</span>
+        <input id="hex" type="text" value="FF0000" maxlength="7" autocomplete="off" aria-label="קוד צבע HEX">
+        <button id="applyColor" type="button">החל</button>
+      </div>
+
+      <label for="brightness">בהירות: <span id="brightnessText">100%</span></label>
+      <input id="brightness" type="range" min="3" max="1000" value="1000" step="1">
+      <button id="applyBrightness" type="button" style="width:100%;margin-top:10px">החל בהירות</button>
+    </section>
+
+    <p class="hint">אם הבקר לא מופיע, סגור את Mr Star ואת כל היישומים האחרים שמחוברים ללדים. נדרשת כתובת HTTPS ושימוש בדפדפן Bluefy באייפון.</p>
+    <p class="foot">My LED · Bluetooth Low Energy</p>
+  </main>
+
+  <script>
+    'use strict';
+    const SERVICE_UUID = '0000fff0-0000-1000-8000-00805f9b34fb';
+    const WRITE_UUID = '0000fff3-0000-1000-8000-00805f9b34fb';
+    const stateText = document.getElementById('state');
+    const statusText = document.getElementById('status');
+    const connectButton = document.getElementById('connect');
+    const disconnectButton = document.getElementById('disconnect');
+    const controls = document.getElementById('controls');
+    const hexInput = document.getElementById('hex');
+    const brightnessInput = document.getElementById('brightness');
+    const brightnessText = document.getElementById('brightnessText');
+    let selectedDevice = null;
+    let writeCharacteristic = null;
+    let brightness = 1000;
+    let working = false;
+
+    function showStatus(title, message, connected) {
+      stateText.textContent = title;
+      statusText.textContent = message;
+      connectButton.hidden = connected;
+      disconnectButton.hidden = !connected;
+      controls.hidden = !connected;
+    }
+
+    function word(value) {
+      const number = Math.max(0, Math.min(65535, Math.round(value)));
+      return [(number >> 8) & 255, number & 255];
+    }
+
+    async function writePacket(bytes) {
+      if (!writeCharacteristic) throw new Error('הבקר לא מחובר. התחבר מחדש.');
+      const data = new Uint8Array(bytes);
+      if (typeof writeCharacteristic.writeValueWithResponse === 'function') {
+        await writeCharacteristic.writeValueWithResponse(data);
+      } else if (typeof writeCharacteristic.writeValue === 'function') {
+        await writeCharacteristic.writeValue(data);
+      } else if (typeof writeCharacteristic.writeValueWithoutResponse === 'function') {
+        await writeCharacteristic.writeValueWithoutResponse(data);
+      } else {
+        throw new Error('הדפדפן לא מאפשר שליחת פקודות למאפיין הזה.');
+      }
+    }
+
+    async function runAction(action) {
+      if (working) return;
+      working = true;
+      document.querySelectorAll('button').forEach((button) => { button.disabled = true; });
+      try {
+        await action();
+      } catch (error) {
+        showStatus('הפעולה נכשלה', error && error.message ? error.message : String(error), Boolean(writeCharacteristic));
+      } finally {
+        working = false;
+        document.querySelectorAll('button').forEach((button) => { button.disabled = false; });
+      }
+    }
+
+    async function connect() {
+      if (!window.isSecureContext || !navigator.bluetooth || !navigator.bluetooth.requestDevice) {
+        throw new Error('פתח את הדף דרך HTTPS בתוך Bluefy כדי להשתמש ב-Bluetooth.');
+      }
+      showStatus('מחפש בקר', 'בחר בחלון שנפתח את GATT--DEMO.', false);
+      selectedDevice = await navigator.bluetooth.requestDevice({
+        filters: [{ namePrefix: 'GATT' }],
+        optionalServices: [SERVICE_UUID]
+      });
+      selectedDevice.addEventListener('gattserverdisconnected', () => {
+        writeCharacteristic = null;
+        showStatus('נותק', 'החיבור נותק. לחץ כדי להתחבר מחדש.', false);
+      });
+      const server = await selectedDevice.gatt.connect();
+      const service = await server.getPrimaryService(SERVICE_UUID);
+      writeCharacteristic = await service.getCharacteristic(WRITE_UUID);
+      showStatus('מחובר', 'התחברת אל ' + (selectedDevice.name || 'GATT--DEMO') + '.', true);
+    }
+
+    async function applyBrightness(value) {
+      brightness = Math.max(3, Math.min(1000, Math.round(Number(value))));
+      const bytes = word(brightness);
+      await writePacket([0xBC, 0x05, 0x06, bytes[0], bytes[1], 0, 0, 0, 0, 0x55]);
+      brightnessText.textContent = Math.round(brightness / 10) + '%';
+      showStatus('מחובר', 'הבהירות עודכנה.', true);
+    }
+
+    function colorToHsv(hex) {
+      const clean = hex.trim().replace(/^#/, '');
+      if (!/^[0-9a-fA-F]{6}$/.test(clean)) throw new Error('הזן קוד צבע בעל 6 ספרות, לדוגמה FF5500.');
+      const red = parseInt(clean.slice(0, 2), 16) / 255;
+      const green = parseInt(clean.slice(2, 4), 16) / 255;
+      const blue = parseInt(clean.slice(4, 6), 16) / 255;
+      const max = Math.max(red, green, blue);
+      const min = Math.min(red, green, blue);
+      const delta = max - min;
+      let hue = 0;
+      if (delta !== 0) {
+        if (max === red) hue = 60 * (((green - blue) / delta) % 6);
+        else if (max === green) hue = 60 * ((blue - red) / delta + 2);
+        else hue = 60 * ((red - green) / delta + 4);
+      }
+      if (hue < 0) hue += 360;
+      return { clean: clean.toUpperCase(), hue: Math.round(hue) % 360,
+        saturation: Math.round((max === 0 ? 0 : delta / max) * 1000), value: max };
+    }
+
+    async function applyColor(hex, label) {
+      const color = colorToHsv(hex);
+      // The device's observed hue order is blue at 0, green at 120, red at 240.
+      const hue = (240 - color.hue + 360) % 360;
+      const h = word(hue);
+      const s = word(color.saturation);
+      await writePacket([0xBC, 0x04, 0x06, h[0], h[1], s[0], s[1], 0, 0, 0x55]);
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      const effectiveBrightness = Math.max(3, Math.round(brightness * color.value));
+      const b = word(effectiveBrightness);
+      await writePacket([0xBC, 0x05, 0x06, b[0], b[1], 0, 0, 0, 0, 0x55]);
+      hexInput.value = color.clean;
+      showStatus('מחובר', 'הצבע הוחל: ' + label, true);
+    }
+
+    connectButton.addEventListener('click', () => runAction(connect));
+    disconnectButton.addEventListener('click', () => runAction(async () => {
+      if (selectedDevice && selectedDevice.gatt && selectedDevice.gatt.connected) selectedDevice.gatt.disconnect();
+      writeCharacteristic = null;
+      showStatus('לא מחובר', 'נותק מהבקר.', false);
+    }));
+    document.querySelectorAll('[data-color]').forEach((button) => {
+      button.addEventListener('click', () => runAction(() => applyColor(button.dataset.color, button.dataset.name)));
+    });
+    document.getElementById('applyColor').addEventListener('click', () => runAction(() => applyColor(hexInput.value, '#' + hexInput.value.replace(/^#/, '').toUpperCase())));
+    document.getElementById('applyBrightness').addEventListener('click', () => runAction(() => applyBrightness(brightnessInput.value)));
+    brightnessInput.addEventListener('input', () => { brightnessText.textContent = Math.round(Number(brightnessInput.value) / 10) + '%'; });
+    hexInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') document.getElementById('applyColor').click(); });
+
+    if (!window.isSecureContext) showStatus('נדרשת כתובת HTTPS', 'פתח את הדף מכתובת HTTPS בתוך Bluefy.', false);
+    else if (!navigator.bluetooth) showStatus('פתח דרך Bluefy', 'הדפדפן הנוכחי לא מספק Web Bluetooth. פתח את הדף ב-Bluefy.', false);
+  </script>
+</body>
+</html>
