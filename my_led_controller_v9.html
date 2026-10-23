@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#090A0F">
+<title>My LED v8</title>
+<style>
+:root{color-scheme:dark;--bg:#090a0f;--card:#171820;--line:#30313d;--text:#f7f7fc;--muted:#999bae;--accent:#9b8aff;--green:#61dda0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -20%,#292044 0%,transparent 48%),var(--bg);color:var(--text);-webkit-tap-highlight-color:transparent}
+button,input{font:inherit}button{cursor:pointer}button:disabled{opacity:.45;cursor:default}
+.app{max-width:560px;margin:auto;padding:max(24px,env(safe-area-inset-top)) 18px calc(112px + env(safe-area-inset-bottom))}
+.topline{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:26px}.brand{display:flex;align-items:center;gap:11px}.logo{width:42px;height:42px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(145deg,#a99aff,#6953d8);color:white;font-size:22px;box-shadow:0 5px 24px #8c76ff30}.brand-name{font-size:19px;font-weight:750}.brand-sub{font-size:12px;color:var(--muted);margin-top:3px}.connection{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);background:#ffffff08;border:1px solid var(--line);border-radius:30px;padding:9px 11px}.dot{width:7px;height:7px;border-radius:50%;background:#777989}.dot.online{background:var(--green);box-shadow:0 0 10px #61dda055}
+h1{font-size:34px;letter-spacing:-1.2px;line-height:1.12;margin:0 0 9px}.subtitle{color:var(--muted);font-size:14px;line-height:1.6;margin:0}.screen{display:none;animation:appear .24s ease both}.screen.active{display:block}@keyframes appear{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+.card{background:linear-gradient(145deg,#1b1c26,#15161e);border:1px solid #ffffff0d;border-radius:23px;padding:19px;margin-top:17px;box-shadow:0 8px 30px #00000012}.card-title{font-size:16px;font-weight:700;margin:0 0 5px}.card-hint{color:var(--muted);font-size:12px;line-height:1.5;margin:0 0 16px}.power-card{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:21px;background:linear-gradient(125deg,#211d35,#171820 75%)}.power-title{font-size:17px;font-weight:750}.power-state{color:var(--muted);font-size:12px;margin-top:5px}.power-button{flex-shrink:0;width:58px;height:58px;border-radius:20px;border:1px solid #ffffff15;color:white;background:#ffffff0d;font-size:25px;transition:transform .18s,background .2s,box-shadow .2s}.power-button:active{transform:scale(.92)}.power-button.on{background:#8269f1;box-shadow:0 0 25px #8269f14a}
+.connect-button{width:100%;border:0;border-radius:15px;padding:15px;color:white;font-weight:700;background:linear-gradient(135deg,#9b88ff,#7258e4);box-shadow:0 7px 22px #8a73ff25;transition:transform .16s}.connect-button:active{transform:scale(.985)}.secondary-button{border:1px solid var(--line);border-radius:13px;padding:12px;color:var(--text);background:#ffffff08}#status{margin:12px 0 0;font-size:12px;line-height:1.55;color:var(--muted);overflow-wrap:anywhere}#status.error{color:#ff9b9b}
+.color-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.swatch-button{min-height:76px;padding:12px 5px;border:1px solid #ffffff0d;border-radius:17px;color:var(--text);background:#ffffff05;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;transition:transform .16s,border-color .16s,background .16s}.swatch-button:active{transform:scale(.95)}.swatch-button.selected{border-color:var(--accent);background:#9b8aff13}.swatch{width:29px;height:29px;border-radius:50%;border:2px solid #ffffff30;box-shadow:0 2px 10px #0004}.swatch-label{font-size:12px}
+.field-label{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;font-weight:650;margin-bottom:12px}.value{color:var(--accent);font-variant-numeric:tabular-nums}.text-input{min-width:0;width:100%;padding:13px 14px;border-radius:13px;border:1px solid var(--line);background:#0d0e14;color:white;outline:none}.text-input:focus{border-color:var(--accent)}.hex-row{display:flex;align-items:center;gap:10px}.hex-row .text-input{direction:ltr;text-align:left}.color-picker{width:49px;height:46px;padding:4px;border:1px solid var(--line);border-radius:13px;background:#0d0e14}.range{width:100%;margin:7px 0 5px;accent-color:var(--accent);cursor:pointer}.range-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}.divider{height:1px;background:#ffffff0d;margin:20px 0}.note{font-size:11px;color:#85879a;line-height:1.6;margin-top:12px}
+.spectrum{height:14px;border-radius:20px;appearance:none;-webkit-appearance:none;background:linear-gradient(to left,red,#ff0,#0f0,#0ff,#00f,#f0f,red)}.spectrum::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:23px;height:23px;border-radius:50%;background:white;border:3px solid #24242e;box-shadow:0 0 0 2px #ffffff80}.spectrum::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:white;border:3px solid #24242e}
+.wheel-wrap{display:flex;justify-content:center;align-items:center;padding:2px 0 16px}.wheel-wrap canvas{width:min(100%,320px);height:auto;touch-action:none;cursor:crosshair;filter:drop-shadow(0 8px 18px #0005);outline:none}.favorite-actions{display:flex;gap:9px;margin-top:14px}.favorite-actions button{flex:1;min-width:0}.favorite-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}.favorite-item{min-width:0;position:relative}.favorite-color{width:100%;height:48px;border:2px solid #ffffff20;border-radius:15px}.favorite-remove{position:absolute;top:-7px;left:-5px;width:23px;height:23px;border:1px solid #ffffff20;border-radius:50%;background:#292a35;color:white}.favorite-empty{grid-column:1/-1;color:var(--muted);font-size:12px;text-align:center;padding:12px 0}
+.effect-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.effect-tile{display:flex;gap:6px;align-items:stretch;min-width:0}.effect-button{min-height:76px;border:1px solid #ffffff0e;border-radius:17px;padding:13px;color:var(--text);background:#ffffff05;text-align:right;transition:transform .16s,border-color .16s,background .16s;flex:1;min-width:0}.effect-button:active{transform:scale(.97)}.effect-button.selected{border-color:var(--accent);background:#9b8aff14}.effect-symbol{font-size:20px;display:block;margin-bottom:8px}.effect-name{font-size:13px;font-weight:650;overflow-wrap:anywhere}.rename-effect{width:36px;flex-shrink:0;border:1px solid #ffffff10;border-radius:13px;color:var(--muted);background:#ffffff05}
+.tabbar{position:fixed;z-index:10;left:50%;bottom:max(13px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(500px,calc(100% - 28px));display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:7px;border:1px solid #ffffff17;border-radius:23px;background:#22232be8;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);box-shadow:0 12px 45px #0007}.tab{min-height:58px;border:0;border-radius:17px;color:#9698aa;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:11px;transition:color .2s,background .2s,transform .2s}.tab .icon{font-size:20px;line-height:1}.tab.active{color:white;background:#ffffff12}.tab:active{transform:scale(.96)}[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="topline"><div class="brand"><div class="logo">✳</div><div><div class="brand-name">My LED</div><div class="brand-sub">תאורה, בדיוק בדרך שלך</div></div></div><div class="connection"><span id="connectionDot" class="dot"></span><span id="connectionLabel">לא מחובר</span></div></header>
+
+<section class="screen active" id="screen-colors">
+<h1>צבעים</h1><p class="subtitle">שליטה מלאה בצבע ובאווירה. השינויים נשלחים מיד.</p>
+<div class="card power-card"><div><div class="power-title">תאורה</div><div class="power-state" id="powerState">כבויה</div></div><button class="power-button" id="powerButton" aria-label="הדלק או כבה את התאורה">⏻</button></div>
+
+<div class="card">
+<div class="card-title">הצבעים המועדפים</div>
+<p class="card-hint">לחץ על צבע שמור כדי להחיל אותו מיד.</p>
+<div class="favorite-grid" id="favoriteGrid"></div>
+<div class="favorite-actions"><button class="secondary-button" id="saveFavorite">♡ שמור צבע נוכחי</button></div>
+<div class="divider"></div>
+<div class="card-title">גלגל צבעים</div>
+<p class="card-hint">בחר גוון מסביב לעיגול. ככל שמתקרבים למרכז, הצבע מתבהר עד ללבן.</p>
+<div class="wheel-wrap"><canvas id="colorWheel" width="320" height="320" role="slider" tabindex="0" aria-label="גלגל בחירת צבע" aria-valuemin="0" aria-valuemax="360"></canvas></div>
+<label class="field-label" for="hex">הצבע שנבחר <span class="value">HEX</span></label>
+<div class="hex-row"><input class="text-input" id="hex" value="FF3030" maxlength="7" autocomplete="off" spellcheck="false" aria-label="קוד צבע HEX"><input class="color-picker" id="colorPicker" type="color" value="#ff3030" aria-label="בחר צבע"></div>
+<p class="note">אפשר לבחור צבע בגלגל או להזין קוד HEX. השינויים נשלחים מיד.</p>
+</div>
+</div>
+<div class="card"><label class="field-label" for="brightness">בהירות <span class="value" id="brightnessText">100%</span></label><input class="range" id="brightness" type="range" min="3" max="1000" value="1000"><div class="range-labels"><span>נמוכה</span><span>גבוהה</span></div></div>
+</section>
+
+<section class="screen" id="screen-effects"><h1>אפקטים</h1><p class="subtitle">מצבי תנועה ושליטה במהירות.</p><div class="card"><div class="card-title">מצבי תאורה</div><p class="card-hint">לחץ על שם האפקט כדי להפעיל אותו. השתמש בעיפרון כדי לתת לו שם משלך.</p><div class="effect-list" id="effectList"></div><p class="note">שמות ברירת המחדל הם ניטרליים כי התנהגות כל מספר עדיין לא אומתה. אפשר לשנות אותם לפי מה שאתה רואה בפועל.</p></div><div class="card"><label class="field-label" for="speed">מהירות <span class="value" id="speedText">50</span></label><input class="range" id="speed" type="range" min="0" max="100" value="50"><div class="range-labels"><span>איטי</span><span>מהיר</span></div></div></section>
+
+<section class="screen" id="screen-settings"><h1>הגדרות</h1><p class="subtitle">חיבור לבקר ומצב המערכת.</p><div class="card"><div class="card-title">חיבור Bluetooth</div><p class="card-hint">התחבר לבקר GATT--DEMO כדי לשלוט בתאורה.</p><button class="connect-button" id="connectButton">התחבר לבקר</button><button class="secondary-button" id="disconnectButton" hidden style="width:100%;margin-top:10px">נתק מהבקר</button><p id="status" aria-live="polite">לא מחובר לבקר.</p></div><div class="card"><div class="card-title">על האפליקציה</div><p class="subtitle" style="margin-top:10px">My LED · Bluetooth Low Energy</p><p class="note">המועדפים ושמות האפקטים נשמרים בדפדפן הזה. הם לא מועלים לחשבון GitHub.</p></div></section>
+</div>
+
+<nav class="tabbar" aria-label="ניווט ראשי"><button class="tab active" data-screen="colors"><span class="icon">◉</span><span>צבעים</span></button><button class="tab" data-screen="effects"><span class="icon">✳</span><span>אפקטים</span></button><button class="tab" data-screen="settings"><span class="icon">⚙</span><span>הגדרות</span></button></nav>
+
+<script>
+'use strict';
+const SERVICE_UUID='0000fff0-0000-1000-8000-00805f9b34fb';
+const WRITE_UUID='0000fff3-0000-1000-8000-00805f9b34fb';
+const $=id=>document.getElementById(id);
+let selectedDevice=null,writeCharacteristic=null,brightness=1000,powered=false,working=false;
+let brightnessTimer=null,speedTimer=null,colorControlTimer=null;
+
+function setStatus(message,error=false){$('status').textContent=message;$('status').classList.toggle('error',error)}
+function updateConnectionUI(connected){$('connectionDot').classList.toggle('online',connected);$('connectionLabel').textContent=connected?'מחובר':'לא מחובר';$('connectButton').hidden=connected;$('disconnectButton').hidden=!connected}
+function updatePowerUI(){$('powerButton').classList.toggle('on',powered);$('powerState').textContent=powered?'דולקת':'כבויה';$('powerButton').setAttribute('aria-pressed',String(powered))}
+function showScreen(name){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id==='screen-'+name));document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.screen===name))}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>showScreen(t.dataset.screen)));
+function word(value){const n=Math.max(0,Math.min(65535,Math.round(value)));return[(n>>8)&255,n&255]}
+async function writePacket(bytes){if(!writeCharacteristic)throw new Error('אין חיבור לבקר. התחבר מחדש.');const data=new Uint8Array(bytes);if(typeof writeCharacteristic.writeValueWithResponse==='function')await writeCharacteristic.writeValueWithResponse(data);else if(typeof writeCharacteristic.writeValue==='function')await writeCharacteristic.writeValue(data);else if(typeof writeCharacteristic.writeValueWithoutResponse==='function')await writeCharacteristic.writeValueWithoutResponse(data);else throw new Error('הדפדפן לא מאפשר לשלוח פקודות לבקר.')}
+async function runAction(action){if(working)return;working=true;try{await action()}catch(e){setStatus(e?.message||String(e),true)}finally{working=false}}
+async function connect(){if(!window.isSecureContext||!navigator.bluetooth?.requestDevice)throw new Error('פתח את הקישור דרך HTTPS בדפדפן Bluefy באייפון.');setStatus('מחפש בקר Bluetooth...');const device=await navigator.bluetooth.requestDevice({filters:[{namePrefix:'GATT'}],optionalServices:[SERVICE_UUID]});selectedDevice=device;device.addEventListener('gattserverdisconnected',()=>{writeCharacteristic=null;powered=false;updateConnectionUI(false);updatePowerUI();setStatus('החיבור נותק. אפשר להתחבר מחדש.')});const server=await device.gatt.connect();const service=await server.getPrimaryService(SERVICE_UUID);writeCharacteristic=await service.getCharacteristic(WRITE_UUID);updateConnectionUI(true);powered=true;updatePowerUI();setStatus('מחובר אל '+(device.name||'GATT--DEMO')+'. מצב התאורה בפועל עדיין לא אומת.')}
+async function disconnect(){if(selectedDevice?.gatt?.connected)selectedDevice.gatt.disconnect();writeCharacteristic=null;powered=false;updateConnectionUI(false);updatePowerUI();setStatus('נותק מהבקר.')}
+async function sendBrightness(value){const b=word(value);await writePacket([0xBC,0x05,0x06,b[0],b[1],0,0,0,0,0x55])}
+async function turnOn(){if(!writeCharacteristic)throw new Error('התחבר לבקר תחילה.');await sendBrightness(brightness);powered=true;updatePowerUI();setStatus('נשלחה פקודת החזרת הבהירות. בדוק שהלדים נדלקו.')}
+async function turnOff(){if(!writeCharacteristic)throw new Error('התחבר לבקר תחילה.');await sendBrightness(0);powered=false;updatePowerUI();setStatus('נשלחה בהירות 0. יש לבדוק אם הבקר מכבה כך את הלדים.')}
+$('powerButton').addEventListener('click',()=>runAction(async()=>powered?turnOff():turnOn()));
+
+function colorToHsv(hex){const clean=hex.trim().replace(/^#/,'');if(!/^[0-9a-fA-F]{6}$/.test(clean))throw new Error('צריך להזין קוד HEX בן 6 ספרות, לדוגמה FF5500.');const r=parseInt(clean.slice(0,2),16)/255,g=parseInt(clean.slice(2,4),16)/255,b=parseInt(clean.slice(4,6),16)/255,max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;let h=0;if(d!==0){if(max===r)h=60*(((g-b)/d)%6);else if(max===g)h=60*((b-r)/d+2);else h=60*((r-g)/d+4)}if(h<0)h+=360;return{clean:clean.toUpperCase(),hue:Math.round(h)%360,saturation:Math.round((max===0?0:d/max)*1000),value:max}}
+function hsvToHex(h,s,v=1){h=((Number(h)%360)+360)%360;s=Math.max(0,Math.min(100,Number(s)))/100;const c=v*s,x=c*(1-Math.abs((h/60)%2-1)),m=v-c;let r=0,g=0,b=0;if(h<60)[r,g,b]=[c,x,0];else if(h<120)[r,g,b]=[x,c,0];else if(h<180)[r,g,b]=[0,c,x];else if(h<240)[r,g,b]=[0,x,c];else if(h<300)[r,g,b]=[x,0,c];else[r,g,b]=[c,0,x];return[r,g,b].map(n=>Math.round((n+m)*255).toString(16).padStart(2,'0')).join('').toUpperCase()}
+let wheelHue=0,wheelSat=100,wheelMarker={x:0,y:0};
+function syncColorControls(hex){const hsv=colorToHsv(hex);$('hex').value=hsv.clean;$('colorPicker').value='#'+hsv.clean.toLowerCase();wheelHue=hsv.hue;wheelSat=Math.round(hsv.saturation/10);drawColorWheel();document.querySelectorAll('[data-color]').forEach(b=>b.classList.toggle('selected',b.dataset.color.toUpperCase()===hsv.clean))}
+function drawColorWheel(){
+ const canvas=$('colorWheel'),ctx=canvas.getContext('2d'),size=canvas.width,c=size/2,r=c-3;
+ ctx.clearRect(0,0,size,size);
+ // A hue ring with saturation fading smoothly to white at the center.
+ const img=ctx.createImageData(size,size);
+ for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+  const dx=x-c,dy=y-c,dist=Math.sqrt(dx*dx+dy*dy)/r;
+  if(dist>1)continue;
+  let hue=(Math.atan2(dy,dx)*180/Math.PI+360)%360;
+  const sat=Math.min(1,dist);
+  const col=hsvToHex(hue,sat*100);
+  const i=(y*size+x)*4;
+  img.data[i]=parseInt(col.slice(0,2),16);img.data[i+1]=parseInt(col.slice(2,4),16);img.data[i+2]=parseInt(col.slice(4,6),16);img.data[i+3]=255;
+ }
+ ctx.putImageData(img,0,0);
+ const a=wheelHue*Math.PI/180,rr=r*(wheelSat/100);
+ const mx=c+Math.cos(a)*rr,my=c+Math.sin(a)*rr;wheelMarker={x:mx,y:my};
+ ctx.beginPath();ctx.arc(mx,my,9,0,Math.PI*2);ctx.fillStyle='#'+($('hex').value||'FFFFFF').replace(/^#/,'');ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#fff';ctx.stroke();
+ ctx.beginPath();ctx.arc(mx,my,12,0,Math.PI*2);ctx.lineWidth=1;ctx.strokeStyle='#0009';ctx.stroke();
+}
+async function applyColor(hex,label){if(!writeCharacteristic)throw new Error('התחבר לבקר תחילה.');const color=colorToHsv(hex);if(!powered)await turnOn();const hue=(240-color.hue+360)%360,h=word(hue),s=word(color.saturation);await writePacket([0xBC,0x04,0x06,h[0],h[1],s[0],s[1],0,0,0x55]);await new Promise(r=>setTimeout(r,60));await sendBrightness(Math.max(3,Math.round(brightness*color.value)));syncColorControls(color.clean);setStatus('נשלח צבע '+label+'.');powered=true;updatePowerUI()}
+$('colorPicker').addEventListener('input',()=>{syncColorControls($('colorPicker').value);clearTimeout(colorControlTimer);colorControlTimer=setTimeout(()=>runAction(()=>applyColor($('colorPicker').value,'אישי')),180)});
+$('hex').addEventListener('change',()=>runAction(()=>applyColor($('hex').value,'אישי')));
+$('hex').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('hex').blur();runAction(()=>applyColor($('hex').value,'אישי'))}});
+function pickWheelColor(e){
+ const canvas=$('colorWheel'),rect=canvas.getBoundingClientRect(),scale=canvas.width/rect.width;
+ const x=(e.clientX-rect.left)*scale-canvas.width/2,y=(e.clientY-rect.top)*scale-canvas.height/2;
+ const r=canvas.width/2-3,dist=Math.min(1,Math.sqrt(x*x+y*y)/r);
+ wheelHue=(Math.atan2(y,x)*180/Math.PI+360)%360;wheelSat=Math.round(dist*100);
+ const hex=hsvToHex(wheelHue,wheelSat);$('hex').value=hex;$('colorPicker').value='#'+hex.toLowerCase();drawColorWheel();
+ clearTimeout(colorControlTimer);colorControlTimer=setTimeout(()=>runAction(()=>applyColor(hex,'בחירת צבע')),180);
+}
+$('colorWheel').addEventListener('pointerdown',e=>{e.preventDefault();$('colorWheel').setPointerCapture(e.pointerId);pickWheelColor(e)});
+$('colorWheel').addEventListener('pointermove',e=>{if(e.buttons||e.pressure>0)pickWheelColor(e)});
+$('colorWheel').addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'||e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();wheelHue=(wheelHue+(e.key==='ArrowRight'||e.key==='ArrowUp'?5:-5)+360)%360;const hex=hsvToHex(wheelHue,wheelSat);$('hex').value=hex;$('colorPicker').value='#'+hex.toLowerCase();drawColorWheel();clearTimeout(colorControlTimer);colorControlTimer=setTimeout(()=>runAction(()=>applyColor(hex,'בחירת צבע')),180)}});
+$('brightness').addEventListener('input',()=>{brightness=Number($('brightness').value);$('brightnessText').textContent=Math.round(brightness/10)+'%';clearTimeout(brightnessTimer);brightnessTimer=setTimeout(()=>runAction(async()=>{if(!writeCharacteristic){setStatus('הבהירות נבחרה. התחבר לבקר כדי להחיל אותה.');return}await sendBrightness(powered?brightness:0);if(powered)setStatus('הבהירות עודכנה.') }),180)});
+
+function readFavorites(){try{const v=JSON.parse(localStorage.getItem('myLedFavorites')||'[]');return Array.isArray(v)?v.filter(x=>typeof x==='string'&&/^[0-9A-F]{6}$/i.test(x)):[]}catch{return[]}}
+function renderFavorites(){const grid=$('favoriteGrid');grid.replaceChildren();const favorites=readFavorites();if(!favorites.length){const empty=document.createElement('div');empty.className='favorite-empty';empty.textContent='עדיין לא שמרת צבעים';grid.appendChild(empty);return}favorites.forEach(hex=>{const item=document.createElement('div');item.className='favorite-item';const btn=document.createElement('button');btn.className='favorite-color';btn.style.backgroundColor='#'+hex;btn.title='#'+hex;btn.setAttribute('aria-label','החל צבע '+hex);btn.addEventListener('click',()=>runAction(()=>applyColor(hex,'מועדף')));const del=document.createElement('button');del.className='favorite-remove';del.textContent='×';del.title='מחק מועדף';del.addEventListener('click',()=>{localStorage.setItem('myLedFavorites',JSON.stringify(readFavorites().filter(c=>c!==hex)));renderFavorites()});item.append(btn,del);grid.appendChild(item)})}
+$('saveFavorite').addEventListener('click',()=>{const hex=$('hex').value.trim().replace(/^#/,'').toUpperCase();if(!/^[0-9A-F]{6}$/.test(hex)){setStatus('בחר צבע תקין לפני שמירתו.',true);return}const favorites=readFavorites();if(favorites.includes(hex)){setStatus('הצבע כבר נמצא במועדפים.');return}if(favorites.length>=24){setStatus('אפשר לשמור עד 24 צבעים מועדפים.',true);return}favorites.push(hex);localStorage.setItem('myLedFavorites',JSON.stringify(favorites));renderFavorites();setStatus('הצבע נשמר במועדפים.')});
+
+async function applyEffectMode(value){if(!writeCharacteristic)throw new Error('התחבר לבקר תחילה.');if(!powered)await turnOn();const mode=Math.max(1,Math.min(20,Math.round(Number(value))));await writePacket([0xBC,0x06,0x02,Math.floor(mode/255),mode%255,0x55]);document.querySelectorAll('.effect-button').forEach(b=>b.classList.toggle('selected',Number(b.dataset.mode)===mode));setStatus('נשלח מצב אפקט '+mode+'.')}
+const effectNames=Array.from({length:20},(_,i)=>'אפקט '+(i+1));
+function loadEffectNames(){try{const saved=JSON.parse(localStorage.getItem('myLedEffectNames')||'[]');if(Array.isArray(saved))saved.forEach((n,i)=>{if(i<20&&typeof n==='string'&&n.trim())effectNames[i]=n})}catch{}}
+function saveEffectNames(){localStorage.setItem('myLedEffectNames',JSON.stringify(effectNames))}
+function renderEffects(){const list=$('effectList');list.replaceChildren();effectNames.forEach((name,index)=>{const mode=index+1,tile=document.createElement('div');tile.className='effect-tile';const btn=document.createElement('button');btn.className='effect-button';btn.dataset.mode=String(mode);const symbol=document.createElement('span');symbol.className='effect-symbol';symbol.textContent=['✳','〰','✦','◌','✺'][index%5];const label=document.createElement('span');label.className='effect-name';label.textContent=name;btn.append(symbol,label);btn.addEventListener('click',()=>runAction(()=>applyEffectMode(mode)));const rename=document.createElement('button');rename.className='rename-effect';rename.textContent='✎';rename.title='שנה שם';rename.setAttribute('aria-label','שנה שם לאפקט '+mode);rename.addEventListener('click',()=>{const next=prompt('שם חדש לאפקט '+mode,effectNames[index]);if(next===null||!next.trim())return;effectNames[index]=next.trim().slice(0,40);saveEffectNames();renderEffects()});tile.append(btn,rename);list.appendChild(tile)})}
+loadEffectNames();renderEffects();
+async function applySpeed(value){if(!writeCharacteristic)throw new Error('התחבר לבקר תחילה.');if(!powered)await turnOn();const speed=Math.max(0,Math.min(100,Math.round(Number(value))));await writePacket([0xBC,0x08,0x01,speed,0x55]);setStatus('מהירות האפקט עודכנה ל-'+speed+'.')}
+$('speed').addEventListener('input',()=>{$('speedText').textContent=$('speed').value;clearTimeout(speedTimer);speedTimer=setTimeout(()=>runAction(()=>applySpeed($('speed').value)),180)});
+$('connectButton').addEventListener('click',()=>runAction(connect));$('disconnectButton').addEventListener('click',()=>runAction(disconnect));
+if(!window.isSecureContext)setStatus('נדרשת כתובת HTTPS. פתח את הדף דרך HTTPS ב-Bluefy.',true);else if(!navigator.bluetooth)setStatus('הדפדפן הזה לא מספק Bluetooth. נסה לפתוח ב-Bluefy.',true);
+syncColorControls('FF3030');drawColorWheel();renderFavorites();updatePowerUI();
+</script>
+</body>
+</html>
