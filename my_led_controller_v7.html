@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#090A0F">
+<title>My LED</title>
+
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #090A0F;
+  --card: #171820;
+  --card2: #20212B;
+  --line: #30313D;
+  --text: #F7F7FC;
+  --muted: #999BAE;
+  --accent: #9B8AFF;
+  --green: #61DDA0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 50% -20%, #292044 0%, transparent 48%),
+    var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+button:disabled { opacity: .45; cursor: default; }
+
+.app {
+  max-width: 540px;
+  margin: auto;
+  padding: max(24px, env(safe-area-inset-top)) 18px
+           calc(112px + env(safe-area-inset-bottom));
+}
+.topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 26px;
+}
+.brand { display: flex; align-items: center; gap: 11px; }
+.logo {
+  width: 42px; height: 42px; border-radius: 15px;
+  display: grid; place-items: center;
+  background: linear-gradient(145deg, #A99AFF, #6953D8);
+  color: white; font-size: 22px;
+  box-shadow: 0 5px 24px #8c76ff30;
+}
+.brand-name { font-size: 19px; font-weight: 750; letter-spacing: -.5px; }
+.brand-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.connection {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; color: var(--muted);
+  background: #ffffff08; border: 1px solid var(--line);
+  border-radius: 30px; padding: 9px 11px;
+}
+.dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #777989;
+}
+.dot.online { background: var(--green); box-shadow: 0 0 10px #61DDA055; }
+
+h1 {
+  font-size: 34px; letter-spacing: -1.2px;
+  line-height: 1.12; margin: 0 0 9px;
+}
+.subtitle { color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0; }
+.screen { display: none; animation: appear .24s ease both; }
+.screen.active { display: block; }
+@keyframes appear {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.card {
+  background: linear-gradient(145deg, #1b1c26, #15161e);
+  border: 1px solid #ffffff0d;
+  border-radius: 23px;
+  padding: 19px;
+  margin-top: 17px;
+  box-shadow: 0 8px 30px #00000012;
+}
+.card-title { font-size: 16px; font-weight: 700; margin: 0 0 5px; }
+.card-hint { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 0 0 16px; }
+.section-head {
+  display: flex; align-items: end; justify-content: space-between;
+  gap: 12px; margin: 28px 0 13px;
+}
+.section-head h2 { font-size: 19px; margin: 0; letter-spacing: -.4px; }
+.section-head span { font-size: 12px; color: var(--muted); }
+
+.power-card {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 15px; padding: 21px;
+  background: linear-gradient(125deg, #211d35, #171820 75%);
+}
+.power-copy { min-width: 0; }
+.power-title { font-size: 17px; font-weight: 750; }
+.power-state { color: var(--muted); font-size: 12px; margin-top: 5px; }
+.power-button {
+  flex-shrink: 0; width: 58px; height: 58px;
+  border-radius: 20px; border: 1px solid #ffffff15;
+  color: white; background: #ffffff0d; font-size: 25px;
+  transition: transform .18s, background .2s, box-shadow .2s;
+}
+.power-button:active { transform: scale(.92); }
+.power-button.on {
+  background: #8269f1; box-shadow: 0 0 25px #8269f14a;
+}
+
+.connect-button {
+  width: 100%; border: 0; border-radius: 15px; padding: 15px;
+  color: white; font-weight: 700;
+  background: linear-gradient(135deg, #9B88FF, #7258E4);
+  box-shadow: 0 7px 22px #8a73ff25;
+  transition: transform .16s, filter .16s;
+}
+.connect-button:active { transform: scale(.985); filter: brightness(1.12); }
+.secondary-button {
+  border: 1px solid var(--line); border-radius: 13px;
+  padding: 12px; color: var(--text); background: #ffffff08;
+}
+#status {
+  margin: 12px 0 0; font-size: 12px; line-height: 1.55;
+  color: var(--muted); overflow-wrap: anywhere;
+}
+#status.error { color: #FF9B9B; }
+
+.color-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;
+}
+.swatch-button {
+  min-height: 83px; padding: 12px 5px;
+  border: 1px solid #ffffff0d; border-radius: 17px;
+  color: var(--text); background: #ffffff05;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 9px;
+  transition: transform .16s, border-color .16s, background .16s;
+}
+.swatch-button:active { transform: scale(.95); }
+.swatch-button.selected { border-color: var(--accent); background: #9b8aff13; }
+.swatch {
+  width: 29px; height: 29px; border-radius: 50%;
+  border: 2px solid #ffffff30;
+  box-shadow: 0 2px 10px #0004;
+}
+.swatch-label { font-size: 12px; }
+
+.field-label {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; font-size: 13px; font-weight: 650; margin-bottom: 12px;
+}
+.value { color: var(--accent); font-variant-numeric: tabular-nums; }
+.text-input {
+  min-width: 0; width: 100%; padding: 13px 14px;
+  border-radius: 13px; border: 1px solid var(--line);
+  background: #0d0e14; color: white; outline: none;
+}
+.text-input:focus { border-color: var(--accent); }
+.hex-row { display: flex; align-items: center; gap: 10px; }
+.hex-row .text-input { direction: ltr; text-align: left; }
+.color-picker {
+  width: 49px; height: 46px; padding: 4px;
+  border: 1px solid var(--line); border-radius: 13px;
+  background: #0d0e14;
+}
+.range {
+  width: 100%; margin: 7px 0 5px;
+  accent-color: var(--accent); cursor: pointer;
+}
+.range-labels {
+  display: flex; justify-content: space-between;
+  color: var(--muted); font-size: 11px;
+}
+.divider { height: 1px; background: #ffffff0d; margin: 20px 0; }
+
+.effect-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.effect-button {
+  min-height: 76px; border: 1px solid #ffffff0e; border-radius: 17px;
+  padding: 13px; color: var(--text); background: #ffffff05;
+  text-align: right; transition: transform .16s, border-color .16s, background .16s;
+}
+.effect-button:active { transform: scale(.97); }
+.effect-button.selected { border-color: var(--accent); background: #9b8aff14; }
+.effect-symbol { font-size: 20px; display: block; margin-bottom: 8px; }
+.effect-name { font-size: 13px; font-weight: 650; }
+
+.tabbar {
+  position: fixed; z-index: 10;
+  left: 50%; bottom: max(13px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(500px, calc(100% - 28px));
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;
+  padding: 7px; border: 1px solid #ffffff17; border-radius: 23px;
+  background: #22232be8; backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 12px 45px #0007;
+}
+.tab {
+  min-height: 58px; border: 0; border-radius: 17px;
+  color: #9698AA; background: transparent;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 5px; font-size: 11px;
+  transition: color .2s, background .2s, transform .2s;
+}
+.tab .icon { font-size: 20px; line-height: 1; }
+.tab.active { color: white; background: #ffffff12; }
+.tab:active { transform: scale(.96); }
+.note { font-size: 11px; color: #85879a; line-height: 1.6; margin-top: 15px; }
+[hidden] { display: none !important; }
+</style>
+</head>
+
+<body>
+<div class="app">
+  <header class="topline">
+    <div class="brand">
+      <div class="logo">✳</div>
+      <div>
+        <div class="brand-name">My LED</div>
+        <div class="brand-sub">תאורה, בדיוק בדרך שלך</div>
+      </div>
+    </div>
+    <div class="connection">
+      <span id="connectionDot" class="dot"></span>
+      <span id="connectionLabel">לא מחובר</span>
+    </div>
+  </header>
+
+  <section class="screen active" id="screen-colors">
+    <h1>צבעים</h1>
+    <p class="subtitle">בחר את האווירה שלך. השינויים נשלחים מיד.</p>
+
+    <div class="card power-card">
+      <div class="power-copy">
+        <div class="power-title">תאורה</div>
+        <div class="power-state" id="powerState">כבויה</div>
+      </div>
+      <button class="power-button" id="powerButton" aria-label="הדלק או כבה את התאורה">⏻</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">צבעים מהירים</div>
+      <p class="card-hint">לחיצה על צבע תחיל אותו מיד.</p>
+      <div class="color-grid">
+        <button class="swatch-button" data-color="FF3030" data-name="אדום">
+          <span class="swatch" style="background:#FF3030"></span><span class="swatch-label">אדום</span>
+        </button>
+        <button class="swatch-button" data-color="30D878" data-name="ירוק">
+          <span class="swatch" style="background:#30D878"></span><span class="swatch-label">ירוק</span>
+        </button>
+        <button class="swatch-button" data-color="408CFF" data-name="כחול">
+          <span class="swatch" style="background:#408CFF"></span><span class="swatch-label">כחול</span>
+        </button>
+        <button class="swatch-button" data-color="FFFFFF" data-name="לבן">
+          <span class="swatch" style="background:#FFFFFF"></span><span class="swatch-label">לבן</span>
+        </button>
+        <button class="swatch-button" data-color="AE62FF" data-name="סגול">
+          <span class="swatch" style="background:#AE62FF"></span><span class="swatch-label">סגול</span>
+        </button>
+        <button class="swatch-button" data-color="FF9B35" data-name="כתום">
+          <span class="swatch" style="background:#FF9B35"></span><span class="swatch-label">כתום</span>
+        </button>
+      </div>
+
+      <div class="divider"></div>
+      <label class="field-label" for="hex">צבע אישי <span class="value">HEX</span></label>
+      <div class="hex-row">
+        <input class="text-input" id="hex" value="FF3030" maxlength="7"
+               autocomplete="off" spellcheck="false" aria-label="קוד צבע HEX">
+        <input class="color-picker" id="colorPicker" type="color" value="#ff3030"
+               aria-label="בחר צבע">
+      </div>
+      <p class="note">בחר צבע בלוח או הזן קוד HEX ולחץ Enter כדי להחיל.</p>
+    </div>
+
+    <div class="card">
+      <label class="field-label" for="brightness">
+        בהירות <span class="value" id="brightnessText">100%</span>
+      </label>
+      <input class="range" id="brightness" type="range" min="3" max="1000" value="1000">
+      <div class="range-labels"><span>נמוכה</span><span>גבוהה</span></div>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-effects">
+    <h1>אפקטים</h1>
+    <p class="subtitle">תנועה וצבע, עם שליטה במהירות.</p>
+
+    <div class="card">
+      <div class="card-title">מצבי תאורה</div>
+      <p class="card-hint">בחר מצב כדי לשלוח אותו לבקר. שמות המצבים עדיין לא זוהו.</p>
+      <div class="effect-list" id="effectList"></div>
+    </div>
+
+    <div class="card">
+      <label class="field-label" for="speed">
+        מהירות <span class="value" id="speedText">50</span>
+      </label>
+      <input class="range" id="speed" type="range" min="0" max="100" value="50">
+      <div class="range-labels"><span>איטי</span><span>מהיר</span></div>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-settings">
+    <h1>הגדרות</h1>
+    <p class="subtitle">חיבור לבקר ומצב המערכת.</p>
+
+    <div class="card">
+      <div class="card-title">חיבור Bluetooth</div>
+      <p class="card-hint">התחבר לבקר GATT--DEMO כדי לשלוט בתאורה.</p>
+      <button class="connect-button" id="connectButton">התחבר לבקר</button>
+      <button class="secondary-button" id="disconnectButton" hidden
+              style="width:100%;margin-top:10px">נתק מהבקר</button>
+      <p id="status" aria-live="polite">לא מחובר לבקר.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">על האפליקציה</div>
+      <p class="subtitle" style="margin-top:10px">
+        My LED · Bluetooth Low Energy
+      </p>
+      <p class="note">
+        הממשק מותאם למסך קטן. אפקטי התנועה מתחשבים בהגדרת הפחתת התנועה של המכשיר.
+      </p>
+    </div>
+  </section>
+</div>
+
+<nav class="tabbar" aria-label="ניווט ראשי">
+  <button class="tab active" data-screen="colors">
+    <span class="icon">◉</span><span>צבעים</span>
+  </button>
+  <button class="tab" data-screen="effects">
+    <span class="icon">✳</span><span>אפקטים</span>
+  </button>
+  <button class="tab" data-screen="settings">
+    <span class="icon">⚙</span><span>הגדרות</span>
+  </button>
+</nav>
+
+<script>
+'use strict';
+
+const SERVICE_UUID = '0000fff0-0000-1000-8000-00805f9b34fb';
+const WRITE_UUID   = '0000fff3-0000-1000-8000-00805f9b34fb';
+
+const $ = id => document.getElementById(id);
+
+let selectedDevice = null;
+let writeCharacteristic = null;
+let brightness = 1000;
+let powered = false;
+let working = false;
+let brightnessTimer = null;
+let speedTimer = null;
+
+function setStatus(message, error = false) {
+  $('status').textContent = message;
+  $('status').classList.toggle('error', error);
+}
+
+function updateConnectionUI(connected) {
+  $('connectionDot').classList.toggle('online', connected);
+  $('connectionLabel').textContent = connected ? 'מחובר' : 'לא מחובר';
+  $('connectButton').hidden = connected;
+  $('disconnectButton').hidden = !connected;
+}
+
+function updatePowerUI() {
+  $('powerButton').classList.toggle('on', powered);
+  $('powerState').textContent = powered ? 'דולקת' : 'כבויה';
+  $('powerButton').setAttribute('aria-pressed', String(powered));
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(screen => {
+    screen.classList.toggle('active', screen.id === 'screen-' + name);
+  });
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.screen === name);
+  });
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => showScreen(tab.dataset.screen));
+});
+
+function word(value) {
+  const number = Math.max(0, Math.min(65535, Math.round(value)));
+  return [(number >> 8) & 255, number & 255];
+}
+
+async function writePacket(bytes) {
+  if (!writeCharacteristic) throw new Error('אין חיבור לבקר. התחבר מחדש.');
+
+  const data = new Uint8Array(bytes);
+
+  if (typeof writeCharacteristic.writeValueWithResponse === 'function') {
+    await writeCharacteristic.writeValueWithResponse(data);
+  } else if (typeof writeCharacteristic.writeValue === 'function') {
+    await writeCharacteristic.writeValue(data);
+  } else if (typeof writeCharacteristic.writeValueWithoutResponse === 'function') {
+    await writeCharacteristic.writeValueWithoutResponse(data);
+  } else {
+    throw new Error('הדפדפן לא מאפשר לשלוח פקודות לבקר.');
+  }
+}
+
+async function runAction(action) {
+  if (working) return;
+  working = true;
+
+  try {
+    await action();
+  } catch (error) {
+    setStatus(error && error.message ? error.message : String(error), true);
+  } finally {
+    working = false;
+  }
+}
+
+async function connect() {
+  if (!window.isSecureContext ||
+      !navigator.bluetooth ||
+      !navigator.bluetooth.requestDevice) {
+    throw new Error('פתח את הקישור דרך HTTPS בדפדפן Bluefy באייפון.');
+  }
+
+  setStatus('מחפש בקר Bluetooth...');
+  const device = await navigator.bluetooth.requestDevice({
+    filters: [{ namePrefix: 'GATT' }],
+    optionalServices: [SERVICE_UUID]
+  });
+
+  selectedDevice = device;
+
+  device.addEventListener('gattserverdisconnected', () => {
+    writeCharacteristic = null;
+    powered = false;
+    updateConnectionUI(false);
+    updatePowerUI();
+    setStatus('החיבור נותק. אפשר להתחבר מחדש.');
+  });
+
+  const server = await device.gatt.connect();
+  const service = await server.getPrimaryService(SERVICE_UUID);
+  writeCharacteristic = await service.getCharacteristic(WRITE_UUID);
+
+  updateConnectionUI(true);
+  powered = true;
+  updatePowerUI();
+  setStatus('מחובר אל ' + (device.name || 'GATT--DEMO') +
+            '. מצב התאורה בפועל עדיין לא אומת.');
+}
+
+async function disconnect() {
+  if (selectedDevice?.gatt?.connected) selectedDevice.gatt.disconnect();
+  writeCharacteristic = null;
+  powered = false;
+  updateConnectionUI(false);
+  updatePowerUI();
+  setStatus('נותק מהבקר.');
+}
+
+/* פקודת הבהירות המוכרת מ-v5 */
+async function sendBrightness(value) {
+  const bytes = word(value);
+  await writePacket([
+    0xBC, 0x05, 0x06, bytes[0], bytes[1], 0, 0, 0, 0, 0x55
+  ]);
+}
+
+async function turnOn() {
+  if (!writeCharacteristic) throw new Error('התחבר לבקר תחילה.');
+  await sendBrightness(brightness);
+  powered = true;
+  updatePowerUI();
+  setStatus('נשלחה פקודת החזרת הבהירות. בדוק שהלדים נדלקו.');
+}
+
+async function turnOff() {
+  if (!writeCharacteristic) throw new Error('התחבר לבקר תחילה.');
+
+  // ניסוי המבוסס על פקודת הבהירות המוכרת, לא פקודת OFF מאומתת.
+  await sendBrightness(0);
+  powered = false;
+  updatePowerUI();
+  setStatus('נשלחה בהירות 0. יש לבדוק אם הבקר מכבה כך את הלדים.');
+}
+
+$('powerButton').addEventListener('click', () => runAction(async () => {
+  if (powered) await turnOff();
+  else await turnOn();
+}));
+
+/* המרת HEX ל-HSV — לוגיקת v5 */
+function colorToHsv(hex) {
+  const clean = hex.trim().replace(/^#/, '');
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) {
+    throw new Error('צריך להזין קוד HEX בן 6 ספרות, לדוגמה FF5500.');
+  }
+
+  const r = parseInt(clean.slice(0, 2), 16) / 255;
+  const g = parseInt(clean.slice(2, 4), 16) / 255;
+  const b = parseInt(clean.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+
+  let hue = 0;
+  if (delta !== 0) {
+    if (max === r) hue = 60 * (((g - b) / delta) % 6);
+    else if (max === g) hue = 60 * ((b - r) / delta + 2);
+    else hue = 60 * ((r - g) / delta + 4);
+  }
+  if (hue < 0) hue += 360;
+
+  return {
+    clean: clean.toUpperCase(),
+    hue: Math.round(hue) % 360,
+    saturation: Math.round((max === 0 ? 0 : delta / max) * 1000),
+    value: max
+  };
+}
+
+async function applyColor(hex, label) {
+  if (!writeCharacteristic) throw new Error('התחבר לבקר תחילה.');
+
+  // שינוי צבע בזמן כבוי יחזיר קודם את התאורה.
+  if (!powered) await turnOn();
+
+  const color = colorToHsv(hex);
+  const hue = (240 - color.hue + 360) % 360;
+  const h = word(hue);
+  const s = word(color.saturation);
+
+  await writePacket([
+    0xBC, 0x04, 0x06, h[0], h[1], s[0], s[1], 0, 0, 0x55
+  ]);
+
+  await new Promise(resolve => setTimeout(resolve, 60));
+
+  const effectiveBrightness = Math.max(3, Math.round(brightness * color.value));
+  await sendBrightness(effectiveBrightness);
+
+  $('hex').value = color.clean;
+  $('colorPicker').value = '#' + color.clean.toLowerCase();
+
+  document.querySelectorAll('[data-color]').forEach(button => {
+    button.classList.toggle(
+      'selected',
+      button.dataset.color.toUpperCase() === color.clean
+    );
+  });
+
+  powered = true;
+  updatePowerUI();
+  setStatus('נשלח צבע ' + label + '.');
+}
+
+document.querySelectorAll('[data-color]').forEach(button => {
+  button.addEventListener('click', () => runAction(
+    () => applyColor(button.dataset.color, button.dataset.name)
+  ));
+});
+
+$('colorPicker').addEventListener('change', () => runAction(
+  () => applyColor($('colorPicker').value, 'אישי')
+));
+
+$('hex').addEventListener('change', () => runAction(
+  () => applyColor($('hex').value, 'אישי')
+));
+
+$('hex').addEventListener('keydown', event => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    $('hex').blur();
+    runAction(() => applyColor($('hex').value, 'אישי'));
+  }
+});
+
+/* שינוי בהירות אוטומטי, עם השהיה קצרה כדי לא להציף פקודות */
+$('brightness').addEventListener('input', () => {
+  const value = Number($('brightness').value);
+  $('brightnessText').textContent = Math.round(value / 10) + '%';
+  brightness = value;
+
+  clearTimeout(brightnessTimer);
+  brightnessTimer = setTimeout(() => runAction(async () => {
+    if (!writeCharacteristic) {
+      setStatus('הבהירות נבחרה. התחבר לבקר כדי להחיל אותה.');
+      return;
+    }
+    await sendBrightness(powered ? brightness : 0);
+    if (powered) setStatus('הבהירות עודכנה.');
+  }), 180);
+});
+
+/* אפקטים מובנים — פקודת v5 */
+async function applyEffectMode(value) {
+  if (!writeCharacteristic) throw new Error('התחבר לבקר תחילה.');
+  if (!powered) await turnOn();
+
+  const mode = Math.max(1, Math.min(20, Math.round(Number(value))));
+  await writePacket([
+    0xBC, 0x06, 0x02, Math.floor(mode / 255), mode % 255, 0x55
+  ]);
+
+  document.querySelectorAll('.effect-button').forEach(button => {
+    button.classList.toggle('selected', Number(button.dataset.mode) === mode);
+  });
+  setStatus('נשלח מצב אפקט ' + mode + '.');
+}
+
+/* יוצרים את 20 המצבים בלי כפתור אישור */
+const effectNames = [
+  'מצב 1','מצב 2','מצב 3','מצב 4','מצב 5',
+  'מצב 6','מצב 7','מצב 8','מצב 9','מצב 10',
+  'מצב 11','מצב 12','מצב 13','מצב 14','מצב 15',
+  'מצב 16','מצב 17','מצב 18','מצב 19','מצב 20'
+];
+const effectSymbols = ['✳','〰','✦','◌','✺'];
+
+effectNames.forEach((name, index) => {
+  const button = document.createElement('button');
+  button.className = 'effect-button';
+  button.dataset.mode = String(index + 1);
+  button.innerHTML =
+    '<span class="effect-symbol">' + effectSymbols[index % effectSymbols.length] +
+    '</span><span class="effect-name">' + name + '</span>';
+  button.addEventListener('click', () =>
+    runAction(() => applyEffectMode(index + 1))
+  );
+  $('effectList').appendChild(button);
+});
+
+/* מהירות — פקודת v5 */
+async function applySpeed(value) {
+  if (!writeCharacteristic) throw new Error('התחבר לבקר תחילה.');
+  if (!powered) await turnOn();
+
+  const speed = Math.max(0, Math.min(100, Math.round(Number(value))));
+  await writePacket([0xBC, 0x08, 0x01, speed, 0x55]);
+  setStatus('מהירות האפקט עודכנה ל-' + speed + '.');
+}
+
+$('speed').addEventListener('input', () => {
+  $('speedText').textContent = $('speed').value;
+  clearTimeout(speedTimer);
+  speedTimer = setTimeout(() =>
+    runAction(() => applySpeed($('speed').value)), 180
+  );
+});
+
+$('connectButton').addEventListener('click', () => runAction(connect));
+$('disconnectButton').addEventListener('click', () => runAction(disconnect));
+
+if (!window.isSecureContext) {
+  setStatus('נדרשת כתובת HTTPS. פתח את הדף דרך HTTPS ב-Bluefy.', true);
+} else if (!navigator.bluetooth) {
+  setStatus('הדפדפן הזה לא מספק Bluetooth. נסה לפתוח ב-Bluefy.', true);
+}
+
+updatePowerUI();
+</script>
+</body>
+</html>
