@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LED אבחון</title>
+<style>
+:root{color-scheme:dark;--bg:#0c0d12;--card:#161720;--line:#2e303d;--text:#f2f2f8;--muted:#9a9cae;--acc:#8f7dff;--ok:#61dda0;--bad:#ff8f8f;font-family:-apple-system,"Segoe UI",Arial,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text)}
+.app{max-width:620px;margin:auto;padding:max(18px,env(safe-area-inset-top)) 14px calc(30px + env(safe-area-inset-bottom))}
+h1{font-size:24px;margin:0 0 4px}h2{font-size:15px;margin:0 0 10px}p{margin:0;color:var(--muted);font-size:13px;line-height:1.6}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:12px}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#ffffff0a;color:var(--text);border-radius:11px;padding:10px 12px}
+button.main{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700;width:100%}
+button:disabled{opacity:.4;cursor:default}
+input,select,textarea{font:inherit;width:100%;background:#0b0c11;color:var(--text);border:1px solid var(--line);border-radius:11px;padding:10px;direction:ltr;text-align:left}
+.row{display:flex;gap:8px;margin-top:8px}.row>*{flex:1}
+.ch{display:block;width:100%;text-align:left;direction:ltr;margin-top:6px;font-size:12px;word-break:break-all}
+.ch.sel{border-color:var(--acc);background:#8f7dff1c}
+.badge{display:inline-block;font-size:10px;border-radius:6px;padding:1px 6px;margin-inline-end:4px;background:#ffffff14;color:var(--muted)}
+.badge.w{background:#61dda024;color:var(--ok)}
+.svc{font-size:11px;color:var(--muted);margin-top:10px;direction:ltr;text-align:left;word-break:break-all}
+.pre{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.pre button{font-size:12px;padding:8px 10px}
+#log{height:260px;overflow:auto;background:#08090d;border:1px solid var(--line);border-radius:11px;padding:8px;font:11px/1.6 ui-monospace,Menlo,monospace;direction:ltr;text-align:left;white-space:pre-wrap;word-break:break-all}
+.tx{color:var(--acc)}.rx{color:var(--ok)}.er{color:var(--bad)}
+.state{font-size:12px;margin-top:8px;color:var(--muted)}
+</style>
+</head>
+<body><div class="app">
+<h1>אבחון בקר LED</h1>
+<p>מתחבר לבקר, מציג מה יש בו, ומאפשר לשלוח בתים ידנית כדי לגלות מה גורם ללד להגיב.</p>
+
+<div class="card">
+<h2>1. חיבור</h2>
+<input id="extra" placeholder="UUID נוסף של שירות (לא חובה)" aria-label="UUID נוסף">
+<div class="row"><button class="main" id="conn">חפש והתחבר</button><button id="disc" disabled style="flex:.4">נתק</button></div>
+<div class="state" id="state">לא מחובר.</div>
+</div>
+
+<div class="card">
+<h2>2. שירותים ותכונות</h2>
+<p>לחץ על תכונה שיש לה <span class="badge w">write</span> כדי לבחור אותה ליעד השליחה.</p>
+<div id="tree"></div>
+</div>
+
+<div class="card">
+<h2>3. שליחת בתים</h2>
+<input id="hex" value="BC 05 06 03 E8 00 00 00 00 55" aria-label="בתים בהקסדצימלי">
+<div class="row"><select id="mode" aria-label="שיטת כתיבה"><option value="auto">שיטה: אוטומטית</option><option value="resp">עם אישור (write)</option><option value="noresp">בלי אישור (write without response)</option></select><button class="main" id="send" disabled>שלח</button></div>
+<p style="margin-top:10px">דוגמאות לניסוי (לחיצה שולחת מיד):</p>
+<div class="pre" id="presets"></div>
+</div>
+
+<div class="card">
+<h2>4. יומן</h2>
+<div id="log" aria-live="polite"></div>
+<div class="row"><button id="copy">העתק יומן</button><button id="clear">נקה</button></div>
+</div>
+</div>
+
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const u=s=>`0000${s}-0000-1000-8000-00805f9b34fb`;
+const OPT=['fff0','ffe0','ffe5','ffd0','ffc0','ffb0','ffa0','ff00','fea0','fee0','fe59','ae00','1800','1801','180a','180f','1812'].map(u)
+ .concat(['6e400001-b5a3-f393-e0a9-e50e24dcca9e','0000ffe5-0000-1000-8000-00805f9b34fb']);
+const PRESETS=[
+ ['האפליקציה שלך: בהירות 100%','BC 05 06 03 E8 00 00 00 00 55'],
+ ['האפליקציה שלך: בהירות 0','BC 05 06 00 00 00 00 00 00 55'],
+ ['האפליקציה שלך: אדום','BC 04 06 00 F0 03 E8 00 00 55'],
+ ['ELK-BLEDOM: דלוק','7E 00 04 F0 00 01 FF 00 EF'],
+ ['ELK-BLEDOM: כבוי','7E 00 04 00 00 00 FF 00 EF'],
+ ['ELK-BLEDOM: אדום','7E 07 05 03 FF 00 00 10 EF'],
+ ['Triones: דלוק','CC 23 33'],
+ ['Triones: כבוי','CC 24 33'],
+ ['Triones: אדום','56 FF 00 00 00 F0 AA'],
+ ['Triones: ירוק','56 00 FF 00 00 F0 AA']
+];
+let dev=null,target=null,chars=[];
+function log(t,c=''){const d=document.createElement('div');d.className=c;d.textContent=new Date().toLocaleTimeString('he-IL')+'  '+t;$('log').appendChild(d);$('log').scrollTop=1e9}
+const hexOf=v=>[...new Uint8Array(v.buffer,v.byteOffset,v.byteLength)].map(b=>b.toString(16).padStart(2,'0')).join(' ').toUpperCase();
+function parseHex(s){const c=s.replace(/0x/gi,'').replace(/[^0-9a-f]/gi,'');if(!c||c.length%2)throw new Error('מספר ספרות הקסדצימליות חייב להיות זוגי.');return new Uint8Array(c.match(/../g).map(x=>parseInt(x,16)))}
+function props(ch){const p=ch.properties;return['read','write','writeWithoutResponse','notify','indicate'].filter(k=>p[k])}
+function pick(c){target=c;document.querySelectorAll('.ch').forEach(b=>b.classList.toggle('sel',b._c===c));$('send').disabled=false;$('state').textContent='יעד: '+c.uuid;log('נבחר יעד '+c.uuid)}
+async function connect(){
+ if(!navigator.bluetooth)throw new Error('אין Web Bluetooth. פתח בדפדפן Bluefy דרך HTTPS.');
+ const opt=OPT.slice(),x=$('extra').value.trim().toLowerCase();if(x)opt.push(x.length<=4?u(x.padStart(4,'0')):x);
+ dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:opt});
+ dev.addEventListener('gattserverdisconnected',()=>{log('החיבור נותק','er');$('state').textContent='לא מחובר.';$('disc').disabled=true;$('send').disabled=true});
+ log('מתחבר אל '+(dev.name||dev.id)+'...');
+ const srv=await dev.gatt.connect(),svcs=await srv.getPrimaryServices();
+ $('disc').disabled=false;$('state').textContent='מחובר אל '+(dev.name||'?');
+ const tree=$('tree');tree.replaceChildren();chars=[];
+ if(!svcs.length){log('לא נמצאו שירותים. הוסף את ה-UUID של השירות בשדה למעלה ונסה שוב.','er')}
+ for(const s of svcs){
+  const h=document.createElement('div');h.className='svc';h.textContent='שירות '+s.uuid;tree.appendChild(h);
+  let cs=[];try{cs=await s.getCharacteristics()}catch(e){log('שגיאה בקריאת תכונות של '+s.uuid+': '+e.message,'er')}
+  for(const c of cs){
+   chars.push(c);const b=document.createElement('button');b.className='ch';b._c=c;
+   const pr=props(c);b.append(c.uuid+'\n');
+   pr.forEach(k=>{const s=document.createElement('span');s.className='badge'+(k.startsWith('write')?' w':'');s.textContent=k;b.appendChild(s)});
+   b.addEventListener('click',()=>pick(c));tree.appendChild(b);
+   log('נמצא '+c.uuid+' ['+pr.join(', ')+']');
+   if(c.properties.notify||c.properties.indicate){try{await c.startNotifications();c.addEventListener('characteristicvaluechanged',e=>log('התקבל מ-'+c.uuid.slice(4,8)+': '+hexOf(e.target.value),'rx'));log('מאזין להתראות מ-'+c.uuid.slice(4,8))}catch(e){log('לא ניתן להאזין ל-'+c.uuid.slice(4,8)+': '+e.message,'er')}}
+  }
+ }
+ const w=chars.find(c=>c.uuid.startsWith(u('fff3').slice(0,8))&&(c.properties.write||c.properties.writeWithoutResponse))||chars.find(c=>c.properties.write||c.properties.writeWithoutResponse);
+ if(w)pick(w);else log('לא נמצאה אף תכונה שמאפשרת כתיבה.','er');
+}
+async function send(hex){
+ if(!target)throw new Error('בחר תכונה ליעד.');
+ const data=parseHex(hex),m=$('mode').value,p=target.properties;
+ const useResp=m==='resp'||(m==='auto'&&p.write);
+ if(useResp){if(!p.write)throw new Error('התכונה לא תומכת בכתיבה עם אישור.');await target.writeValueWithResponse(data)}
+ else{if(!p.writeWithoutResponse)throw new Error('התכונה לא תומכת בכתיבה בלי אישור.');await target.writeValueWithoutResponse(data)}
+ log('נשלח '+hexOf(data.length?new DataView(data.buffer):data)+(useResp?'  (עם אישור)':'  (בלי אישור)'),'tx');
+}
+async function run(f){try{await f()}catch(e){log(e.message||String(e),'er')}}
+PRESETS.forEach(([n,h])=>{const b=document.createElement('button');b.textContent=n;b.addEventListener('click',()=>{$('hex').value=h;run(()=>send(h))});$('presets').appendChild(b)});
+$('conn').addEventListener('click',()=>run(connect));
+$('disc').addEventListener('click',()=>{dev?.gatt?.connected&&dev.gatt.disconnect()});
+$('send').addEventListener('click',()=>run(()=>send($('hex').value)));
+$('hex').addEventListener('keydown',e=>{if(e.key==='Enter')run(()=>send($('hex').value))});
+$('clear').addEventListener('click',()=>$('log').replaceChildren());
+$('copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('log').innerText);log('היומן הועתק')}catch{log('לא ניתן להעתיק. סמן ידנית.','er')}});
+if(!window.isSecureContext)log('נדרשת כתובת HTTPS.','er');
+</script>
+</body>
+</html>
